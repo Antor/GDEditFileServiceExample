@@ -142,7 +142,8 @@ public class MainActivity extends Activity {
 					String method = "editFile"; // name method of service which we want to call
 					Map<String, Object> params = new HashMap<String, Object>();
 					String[] attachments = new String[] { PATH_TO_TEST_TXT_FILE }; // Paths to files inside GD secure storages
-					String requestID = GDServiceClient.sendTo(application, service, version, method, params, attachments, GDICCForegroundOptions.NoForegroundPreference);
+					String requestID = GDServiceClient.sendTo(application, service, version, method, params,
+							attachments, GDICCForegroundOptions.PreferPeerInForeground);
 				} catch (GDServiceException e) {
 					Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(),
 							Toast.LENGTH_LONG).show();

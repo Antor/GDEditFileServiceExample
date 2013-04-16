@@ -9,6 +9,7 @@ import com.good.gd.Activity;
 import com.good.gd.GDAndroid;
 import com.good.gd.GDAppEvent;
 import com.good.gd.GDAppEventListener;
+import com.good.gd.icc.GDICCForegroundOptions;
 import com.good.gd.icc.GDService;
 import com.good.gd.icc.GDServiceClient;
 import com.good.gd.icc.GDServiceClientListener;
@@ -53,13 +54,20 @@ public class MainActivity extends Activity {
 					@Override
 					public void onReceiveMessage(String application, String service, String version, String method,
 							Object params, String[] attachments, String requestID) {
-						// TODO Auto-generated method stub
 						Log.d("SecureGDFileOpener", "GDServiceListener.onReceiveMessage()");
+						
+						// Handle error conditions
+						
+						try {
+							GDService.replyTo(application, null, GDICCForegroundOptions.PreferPeerInForeground, new String[0], requestID);
+						} catch (GDServiceException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 
 					@Override
 					public void onMessageSent(String application, String requestID, String[] attachments) {
-						// TODO Auto-generated method stub
 						Log.d("SecureGDFileOpener", "GDServiceListener.onMessageSent()");
 					}
 				});
