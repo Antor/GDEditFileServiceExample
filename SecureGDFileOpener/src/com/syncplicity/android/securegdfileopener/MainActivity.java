@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -22,11 +24,13 @@ import com.good.gd.GDAppEventListener;
 import com.good.gd.file.File;
 import com.good.gd.file.FileInputStream;
 import com.good.gd.file.FileOutputStream;
+import com.good.gd.icc.GDICCForegroundOptions;
 import com.good.gd.icc.GDService;
 import com.good.gd.icc.GDServiceClient;
 import com.good.gd.icc.GDServiceClientListener;
 import com.good.gd.icc.GDServiceException;
 import com.good.gd.icc.GDServiceListener;
+import com.syncplicity.android.securegdfileopener.IntentHelper.OnGdAppSelectedListener;
 
 public class MainActivity extends Activity {
 	
@@ -119,47 +123,27 @@ public class MainActivity extends Activity {
 	}
 
 	public void onEditStubFileClicked(View v) {
-		// TODO Implementation
-		
-//	try {
-//		String application = "com.syncplicity.android.securegdfileeditor.MainActivity"; // packge of application
-//		String service = "com.good.gdservice.edit-file"; // id of service
-//		String version = "1.0.0.0"; // version of service
-//		String method = "editFile"; // name method of service which we want to call
-//		Map<String, Object> params = new HashMap<String, Object>();
-//		String[] attachments = new String[1]; // Paths to files inside GD secure storages
-//		attachments[0] = "test.txt";
-//		createStubFile(attachments[0], 256);
-//
-////static String sendTo	(	String 	application,
-////String 	service,
-////String 	version,
-////String 	method,
-////Object 	params,
-////String[] 	attachments,
-////GDICCForegroundOptions 	option 
-////)		 throws GDServiceException 
-//		GDAndroid.getInstance().authorize("com.syncplicity.android.securegdfileopener", "1.0.0.0",
-//				new GDAppEventListener() {
-//
-//					@Override
-//					public void onGDEvent(GDAppEvent event) {
-//						Log.d("SecureGDFileOpener", event.toString());
-//					}
-//				});
-////		GDServiceClient.bringToFront("com.syncplicity.android.securegdfileeditor.MainActivity");
-//		String requestID = GDServiceClient.sendTo(application, service, version, method, params, attachments, GDICCForegroundOptions.PreferPeerInForeground);
-//		
-//	} catch (GDServiceException e) {
-//		e.printStackTrace();
-//	}
-	}
-	
-	private List<GDAppDetail> getListOfApplicationsThatSupportsEditFileService() {
-		String serviceId = "com.good.gdservice.edit-file";
-		String serviceVersion = "1.0.0.0";
-		List<GDAppDetail> availableApps = GDAndroid.getInstance().getApplicationDetailsForService(serviceId, serviceVersion);
-		return availableApps;
+		final String SERVICE_ID = "com.good.gdservice.edit-file";
+		final String SERVICE_VERSION = "1.0.0.0";
+		List<GDAppDetail> availableAppsToEditFileIn = GDAndroid.getInstance().getApplicationDetailsForService(SERVICE_ID, SERVICE_VERSION);
+		IntentHelper.showChooser(this, "Choose app:", availableAppsToEditFileIn, new OnGdAppSelectedListener() {
+			
+			@Override
+			public void onGdAppSelectedListener(GDAppDetail gdAppDetail) {
+				try {
+					String application = gdAppDetail.getApplicationId() + ".MainActivity"; // TODO Investigate it and find solution.
+					String service = SERVICE_ID; // id of service
+					String version = SERVICE_VERSION; // version of service
+					String method = "editFile"; // name method of service which we want to call
+					Map<String, Object> params = new HashMap<String, Object>();
+					String[] attachments = new String[] { PATH_TO_TEST_TXT_FILE }; // Paths to files inside GD secure storages
+					String requestID = GDServiceClient.sendTo(application, service, version, method, params, attachments, GDICCForegroundOptions.PreferPeerInForeground);
+				} catch (GDServiceException e) {
+					Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(),
+							Toast.LENGTH_LONG).show();
+				}
+			}
+		});
 	}
 
 	private void loadTestFileContentFromDiskAsync(final boolean resetToDefault) {
