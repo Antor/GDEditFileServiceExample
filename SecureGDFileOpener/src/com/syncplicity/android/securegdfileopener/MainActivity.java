@@ -1,15 +1,14 @@
 package com.syncplicity.android.securegdfileopener;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -20,8 +19,8 @@ import com.good.gd.GDAndroid;
 import com.good.gd.GDAppDetail;
 import com.good.gd.GDAppEvent;
 import com.good.gd.GDAppEventListener;
-import com.good.gd.error.GDInitializationError;
 import com.good.gd.file.File;
+import com.good.gd.file.FileInputStream;
 import com.good.gd.file.FileOutputStream;
 import com.good.gd.icc.GDService;
 import com.good.gd.icc.GDServiceClient;
@@ -32,10 +31,13 @@ import com.good.gd.icc.GDServiceListener;
 public class MainActivity extends Activity {
 	
 	private static final String PATH_TO_TEST_TXT_FILE = "test.txt";
+	private static final String DEFAULT_TEST_TXT_FILE_CONTENT = "Hello GD world!";
 	
 	private Button resetButton_;
 	private Button editButton_;
 	private TextView fileContent_;
+	
+	private AsyncTask<Void, Void, Void> lastStartedAsyncTask_;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -50,45 +52,12 @@ public class MainActivity extends Activity {
 		resetButton_.setEnabled(false);
 		editButton_.setEnabled(false);
 		
-		initializeGD();
-		
-	}
-
-	private void initializeGD() throws GDInitializationError {
 		GDAndroid.getInstance().authorize(new GDAppEventListener() {
 			@Override
 			public void onGDEvent(GDAppEvent event) {
 				switch (event.getEventType()) {
 				case GDAppEventAuthorized:
-					
-					File testFile = new File(PATH_TO_TEST_TXT_FILE);
-					if (!testFile.exists()) {
-						createStubTxtFile(PATH_TO_TEST_TXT_FILE, "Hello GD world!");
-					}
-					// Load file content on screen
-					FileReader fileReader = null;
-					try {
-						fileReader = new FileReader(testFile);
-						StringBuilder fileContentBuilder = new StringBuilder();
-						char nextChar;
-						while ((nextChar = (char) fileReader.read()) != -1) {
-							fileContentBuilder.append(nextChar);
-						}
-						fileContent_.setText(fileContentBuilder.toString());
-					} catch (IOException e) {
-						Toast.makeText(getApplicationContext(), "Error while init: " + e.getMessage(), Toast.LENGTH_LONG).show();
-					} finally {
-						if (fileReader != null) {
-							try {
-								fileReader.close();
-							} catch (IOException e) {
-								// Do nothing
-							}
-						}
-					}
-					
-					resetButton_.setEnabled(true);
-					editButton_.setEnabled(true);
+					loadTestFileContentFromDiskAsync(false);
 					break;
 				case GDAppEventNotAuthorized:
 					// If app not authorized through GD library - block UI
@@ -138,47 +107,17 @@ public class MainActivity extends Activity {
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
+	protected void onPause() {
+		super.onPause();
+		if (lastStartedAsyncTask_ != null && !lastStartedAsyncTask_.isCancelled()) {
+			lastStartedAsyncTask_.cancel(false);
+		}
 	}
-	
-	
 	
 	public void onResetTestFileClicked(View v) {
-		
-		File testFile = new File(PATH_TO_TEST_TXT_FILE);
-		
-		testFile.delete();
-		createStubTxtFile(PATH_TO_TEST_TXT_FILE, "Hello GD world!");
-		
-		// Load file content on screen
-		FileReader fileReader = null;
-		try {
-			fileReader = new FileReader(testFile);
-			StringBuilder fileContentBuilder = new StringBuilder();
-			char nextChar;
-			while ((nextChar = (char) fileReader.read()) != -1) {
-				fileContentBuilder.append(nextChar);
-			}
-			fileContent_.setText(fileContentBuilder.toString());
-		} catch (IOException e) {
-			Toast.makeText(getApplicationContext(), "Error while init: " + e.getMessage(), Toast.LENGTH_LONG).show();
-		} finally {
-			if (fileReader != null) {
-				try {
-					fileReader.close();
-				} catch (IOException e) {
-					// Do nothing
-				}
-			}
-		}
-		
-		
-
+		loadTestFileContentFromDiskAsync(true);
 	}
-	
+
 	public void onEditStubFileClicked(View v) {
 		// TODO Implementation
 		
@@ -223,27 +162,101 @@ public class MainActivity extends Activity {
 		return availableApps;
 	}
 
-	private void createStubTxtFile(String path, String initialContent) {
-		File file = new File(path);
-		if (file.isDirectory()) {
-			file.delete();
-		}
-		String parent = file.getParent();
-		if (parent != null) {
-			File parentfile = new File(parent);
-			parentfile.mkdirs();
-		}
+	private void loadTestFileContentFromDiskAsync(final boolean resetToDefault) {
+		lastStartedAsyncTask_ = new AsyncTask<Void, Void, Void>() {
 
-		byte[] data = initialContent.getBytes();
+			private IOException exception_ = null;
+			private String fileContentString_;
+			
+			@Override
+			protected void onPreExecute() {
+				resetButton_.setEnabled(false);
+				editButton_.setEnabled(false);
+			}
 
-		OutputStream out = null;
-		try {
-			out = new BufferedOutputStream(new FileOutputStream(file));
-			out.write(data);
-			out.flush();
-			out.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+			@Override
+			protected Void doInBackground(Void... params) {
+				try {
+					File testFile = new File(PATH_TO_TEST_TXT_FILE);
+					if (resetToDefault) {
+						createTextFile(testFile, DEFAULT_TEST_TXT_FILE_CONTENT);
+					}
+					fileContentString_ = readTextFile(testFile);
+				} catch (IOException e) {
+					exception_ = e;
+				}
+				return null;
+			}
+			
+			private void createTextFile(File file, String content) throws IOException {
+				String parent = file.getParent();
+				if (parent != null) {
+					File parentfile = new File(parent);
+					parentfile.mkdirs();
+				}
+
+				byte[] data = content.getBytes("UTF-8");
+				OutputStream out = null;
+				try {
+					out = new FileOutputStream(file);
+					out.write(data);	
+				} finally {
+					if (out != null) {
+						try {
+							out.close();
+						} catch (IOException e) {
+							// Do nothing
+						}
+					}
+				}
+			}
+			
+			private String readTextFile(File testFile) throws IOException {
+				// Load file content on screen
+				List<Byte> stringAsBytesList = new ArrayList<Byte>();
+				
+				InputStream inputStream = null;
+				
+				try {
+					inputStream = new FileInputStream(testFile);
+					
+					byte[] buffer = new byte[1024];
+					int byteRead;
+					while ((byteRead = inputStream.read(buffer)) != -1) {
+						for (int i = 0; i < byteRead; i++) {
+							stringAsBytesList.add(buffer[i]);
+						}
+					}
+					
+					byte[] stringAsBytesArray = new byte[stringAsBytesList.size()];
+					for (int i = 0; i < stringAsBytesList.size(); i++) {
+						stringAsBytesArray[i] = stringAsBytesList.get(i);
+					}
+					String fileContent = new String(stringAsBytesArray, "UTF-8");
+					return fileContent;
+				} finally {
+					if (inputStream != null) {
+						try {
+							inputStream.close();
+						} catch (IOException e) {
+							// Do nothing
+						}
+					}
+				}
+			}
+			
+			@Override
+			protected void onPostExecute(Void result) {
+				if (exception_ != null) {
+					Toast.makeText(getApplicationContext(), "Error while init: " + exception_.getMessage(),
+							Toast.LENGTH_LONG).show();
+				} else {
+					fileContent_.setText(fileContentString_);
+				}
+				resetButton_.setEnabled(true);
+				editButton_.setEnabled(true);
+			}
+		};
+		lastStartedAsyncTask_.execute();
 	}
 }
