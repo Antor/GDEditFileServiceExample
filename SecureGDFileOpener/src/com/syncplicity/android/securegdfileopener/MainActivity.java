@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -130,14 +131,18 @@ public class MainActivity extends Activity {
 			
 			@Override
 			public void onGdAppSelectedListener(GDAppDetail gdAppDetail) {
+				// Hack to find out class name of launch activity. Cause we cannot use just android package name for application parameter
+				Intent intent = getPackageManager().getLaunchIntentForPackage(gdAppDetail.getApplicationId());
+				String className = intent.getComponent().getClassName();
+				
 				try {
-					String application = gdAppDetail.getApplicationId() + ".MainActivity"; // TODO Investigate it and find solution.
+					String application = className;
 					String service = SERVICE_ID; // id of service
 					String version = SERVICE_VERSION; // version of service
 					String method = "editFile"; // name method of service which we want to call
 					Map<String, Object> params = new HashMap<String, Object>();
 					String[] attachments = new String[] { PATH_TO_TEST_TXT_FILE }; // Paths to files inside GD secure storages
-					String requestID = GDServiceClient.sendTo(application, service, version, method, params, attachments, GDICCForegroundOptions.PreferPeerInForeground);
+					String requestID = GDServiceClient.sendTo(application, service, version, method, params, attachments, GDICCForegroundOptions.NoForegroundPreference);
 				} catch (GDServiceException e) {
 					Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(),
 							Toast.LENGTH_LONG).show();
