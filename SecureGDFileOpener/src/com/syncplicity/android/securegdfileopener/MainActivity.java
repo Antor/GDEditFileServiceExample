@@ -34,29 +34,30 @@ import com.good.gd.icc.GDServiceListener;
 import com.syncplicity.android.securegdfileopener.IntentHelper.OnGdAppSelectedListener;
 
 public class MainActivity extends Activity {
-	
+
 	private static final String PATH_TO_TEST_TXT_FILE = "test.txt";
 	private static final String DEFAULT_TEST_TXT_FILE_CONTENT = "Hello GD world!";
-	
+
 	private Button resetButton_;
 	private Button editButton_;
 	private TextView fileContent_;
-	
+
 	private AsyncTask<Void, Void, Void> lastStartedAsyncTask_;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		Log.d("SecureGDFileOpener", "com.syncplicity.android.securegdfileopener.MainActivity.onCreate()");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.ac_main);
 
 		resetButton_ = (Button) findViewById(R.id.reset_button);
 		editButton_ = (Button) findViewById(R.id.edit_button);
 		fileContent_ = (TextView) findViewById(R.id.file_content);
-		
+
 		// While app not authorized through GD library - block UI
 		resetButton_.setEnabled(false);
 		editButton_.setEnabled(false);
-		
+
 		GDAndroid.getInstance().authorize(new GDAppEventListener() {
 			@Override
 			public void onGDEvent(GDAppEvent event) {
@@ -78,34 +79,22 @@ public class MainActivity extends Activity {
 				}
 			}
 		});
-		
+
 		try {
 			GDServiceClient.setServiceClientListener( new GDServiceClientListener() {
-				
+
 				@Override
 				public void onReceiveMessage (String application, Object params, String[] attachments, String requestID) {
-					Log.d("SecureGDFileOpener", "GDServiceClientListener.onReceiveMessage()");
+					Log.d("SecureGDFileOpener", String.format("Received message %s",
+							params));
 				}
-				
+
 				@Override
 				public void onMessageSent (String application, String requestID, String[] attachments) {
-					Log.d("SecureGDFileOpener", "GDServiceClientListener.onMessageSent()");
-					
+					Log.d("SecureGDFileOpener", String.format("Sent message to application=%s",
+							application));
 				}
 			} );
-			GDService.setServiceListener(new GDServiceListener() {
-
-				@Override
-				public void onReceiveMessage(String application, String service, String version, String method,
-						Object params, String[] attachments, String requestID) {
-					Log.d("SecureGDFileOpener", "GDServiceListener.onReceiveMessage()");
-				}
-
-				@Override
-				public void onMessageSent(String application, String requestID, String[] attachments) {
-					Log.d("SecureGDFileOpener", "GDServiceListener.onMessageSent()");
-				}
-			});
 		} catch (GDServiceException e) {
 			e.printStackTrace();
 		}
@@ -118,7 +107,7 @@ public class MainActivity extends Activity {
 			lastStartedAsyncTask_.cancel(false);
 		}
 	}
-	
+
 	public void onResetTestFileClicked(View v) {
 		loadTestFileContentFromDiskAsync(true);
 	}
@@ -128,15 +117,15 @@ public class MainActivity extends Activity {
 		final String SERVICE_VERSION = "1.0.0.0";
 		List<GDAppDetail> availableAppsToEditFileIn = GDAndroid.getInstance().getApplicationDetailsForService(SERVICE_ID, SERVICE_VERSION);
 		IntentHelper.showChooser(this, "Choose app:", availableAppsToEditFileIn, new OnGdAppSelectedListener() {
-			
+
 			@Override
 			public void onGdAppSelectedListener(GDAppDetail gdAppDetail) {
 				// Hack to find out class name of launch activity. Cause we cannot use just android package name for application parameter
 				Intent intent = getPackageManager().getLaunchIntentForPackage(gdAppDetail.getApplicationId());
 				String className = intent.getComponent().getClassName();
-				
+
 				try {
-					String application = className;
+					String application = gdAppDetail.getApplicationId() + ".IccReceivingActivity";//className;
 					String service = SERVICE_ID; // id of service
 					String version = SERVICE_VERSION; // version of service
 					String method = "editFile"; // name method of service which we want to call
@@ -157,7 +146,7 @@ public class MainActivity extends Activity {
 
 			private IOException exception_ = null;
 			private String fileContentString_;
-			
+
 			@Override
 			protected void onPreExecute() {
 				resetButton_.setEnabled(false);
@@ -168,7 +157,7 @@ public class MainActivity extends Activity {
 			protected Void doInBackground(Void... params) {
 				try {
 					File testFile = new File(PATH_TO_TEST_TXT_FILE);
-					if (resetToDefault) {
+					if (resetToDefault || !testFile.exists()) {
 						createTextFile(testFile, DEFAULT_TEST_TXT_FILE_CONTENT);
 					}
 					fileContentString_ = readTextFile(testFile);
@@ -177,7 +166,7 @@ public class MainActivity extends Activity {
 				}
 				return null;
 			}
-			
+
 			private void createTextFile(File file, String content) throws IOException {
 				String parent = file.getParent();
 				if (parent != null) {
@@ -189,7 +178,7 @@ public class MainActivity extends Activity {
 				OutputStream out = null;
 				try {
 					out = new FileOutputStream(file);
-					out.write(data);	
+					out.write(data);
 				} finally {
 					if (out != null) {
 						try {
@@ -200,16 +189,16 @@ public class MainActivity extends Activity {
 					}
 				}
 			}
-			
+
 			private String readTextFile(File testFile) throws IOException {
 				// Load file content on screen
 				List<Byte> stringAsBytesList = new ArrayList<Byte>();
-				
+
 				InputStream inputStream = null;
-				
+
 				try {
 					inputStream = new FileInputStream(testFile);
-					
+
 					byte[] buffer = new byte[1024];
 					int byteRead;
 					while ((byteRead = inputStream.read(buffer)) != -1) {
@@ -217,7 +206,7 @@ public class MainActivity extends Activity {
 							stringAsBytesList.add(buffer[i]);
 						}
 					}
-					
+
 					byte[] stringAsBytesArray = new byte[stringAsBytesList.size()];
 					for (int i = 0; i < stringAsBytesList.size(); i++) {
 						stringAsBytesArray[i] = stringAsBytesList.get(i);
@@ -234,7 +223,7 @@ public class MainActivity extends Activity {
 					}
 				}
 			}
-			
+
 			@Override
 			protected void onPostExecute(Void result) {
 				if (exception_ != null) {
