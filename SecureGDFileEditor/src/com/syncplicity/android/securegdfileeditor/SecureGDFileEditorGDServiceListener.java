@@ -1,8 +1,8 @@
 package com.syncplicity.android.securegdfileeditor;
 
-import java.lang.ref.WeakReference;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import android.util.Log;
@@ -19,6 +19,57 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 
 	public interface OnOpenFileToEditListener {
 		public void onOpenFileToEdit(File file, byte[] identificationData, String fromAplication);
+	}
+
+	public static class GDServiceMessage {
+
+		private String application_;
+		private String service_;
+		private String version_;
+		private String method_;
+		private Object params_;
+		private String[] attachments_;
+		private String requestID_;
+
+		public GDServiceMessage(String application, String service, String version, String method, Object params,
+				String[] attachments, String requestID) {
+			this.application_ = application;
+			this.service_ = service;
+			this.version_ = version;
+			this.method_ = method;
+			this.params_ = params;
+			this.attachments_ = attachments;
+			this.requestID_ = requestID;
+		}
+
+		public String getApplication() {
+			return application_;
+		}
+
+		public String getService() {
+			return service_;
+		}
+
+		public String getVersion() {
+			return version_;
+		}
+
+		public String getMethod() {
+			return method_;
+		}
+
+		public Object getParams() {
+			return params_;
+		}
+
+		public String[] getAttachments() {
+			return attachments_;
+		}
+
+		public String getRequestID() {
+			return requestID_;
+		}
+
 	}
 
 	private static final String EDIT_FILE_SERVICE_ID = "com.good.gdservice.edit-file";
@@ -46,7 +97,7 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 
 	private static SecureGDFileEditorGDServiceListener instance_;
 
-	private WeakReference<OnOpenFileToEditListener> onOpenFileToEditListener_;
+	private Queue<GDServiceMessage> pendingGDServiceMessages_;
 
 	public static SecureGDFileEditorGDServiceListener getInstance() {
 		if (instance_ == null) {
@@ -56,10 +107,11 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 	}
 
 	private SecureGDFileEditorGDServiceListener() {
+		pendingGDServiceMessages_ = new LinkedList<GDServiceMessage>();
 	}
 
-	public void setOnOpenFileToEditListener_(OnOpenFileToEditListener listener) {
-		this.onOpenFileToEditListener_ = new WeakReference<OnOpenFileToEditListener>(listener);
+	public Queue<GDServiceMessage> getPendingGDServiceMessages() {
+		return pendingGDServiceMessages_;
 	}
 
 	@Override
@@ -67,10 +119,16 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 			Object params, String[] attachments, String requestID) {
 		Log.d("SecureGDFileOpener", String.format("Received message %s",
 				params));
+		pendingGDServiceMessages_.add(new GDServiceMessage(application, service, version, method, params, attachments, requestID));
+	}
+
+	public void consumeReceivedMessage(String application, String service, String version, String method,
+				Object params, String[] attachments, String requestID, OnOpenFileToEditListener onOpenFileToEditListener) {
+
 
 		if (service.equals(EDIT_FILE_SERVICE_ID)
 				&& version.equals(EDIT_FILE_SERVICE_VERSION_1_0_0_0)) {
-			handleEditFileServiceRequest(application, method, params, attachments, requestID);
+			handleEditFileServiceRequest(application, method, params, attachments, requestID, onOpenFileToEditListener);
 		} else {
 
 			GDServiceError gdServiceError = new GDServiceError(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
@@ -86,9 +144,9 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 	}
 
 	private void handleEditFileServiceRequest(String application, String method, Object params, String[] attachments,
-			String requestID) {
+			String requestID, OnOpenFileToEditListener onOpenFileToEditListener) {
 		if (method.equals(EDIT_FILE_SERVICE_EDIT_FILE_METHOD)) {
-			handleEditFileServiceRequestWithEditFileMethod(application, params, attachments, requestID);
+			handleEditFileServiceRequestWithEditFileMethod(application, params, attachments, requestID, onOpenFileToEditListener);
 		} else {
 			GDServiceError gdServiceError = new GDServiceError(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 					String.format("Service %s v.%s does not support %s method!", EDIT_FILE_SERVICE_ID,
@@ -104,7 +162,7 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 	}
 
 	private void handleEditFileServiceRequestWithEditFileMethod(String application, Object params, String[] attachments,
-			String requestID) {
+			String requestID, OnOpenFileToEditListener onOpenFileToEditListener) {
 		// Request should contains exactly 1 attachment
 		if (attachments.length != 1) {
 			GDServiceError gdServiceError = new GDServiceError(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
@@ -227,7 +285,7 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 		}
 
 		byte[] identificationData = (byte[]) paramsMap.get("identificationData");
-		openFileToEdit(file, identificationData, application);
+		openFileToEdit(file, identificationData, application, onOpenFileToEditListener);
 
 		// File was successfully received so send empty response as sign of success
 		try {
@@ -238,13 +296,9 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 		}
 	}
 
-	private void openFileToEdit(File file, byte[] identificationData, String fromAplication) {
-
-		if (onOpenFileToEditListener_ != null) {
-			OnOpenFileToEditListener listener = onOpenFileToEditListener_.get();
-			if (listener != null) {
-				listener.onOpenFileToEdit(file, identificationData, fromAplication);
-			}
+	private void openFileToEdit(File file, byte[] identificationData, String fromAplication, OnOpenFileToEditListener onOpenFileToEditListener) {
+		if (onOpenFileToEditListener != null) {
+			onOpenFileToEditListener.onOpenFileToEdit(file, identificationData, fromAplication);
 		}
 	}
 

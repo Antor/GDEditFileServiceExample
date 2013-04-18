@@ -1,84 +1,112 @@
 package com.syncplicity.android.securegdfileeditor;
 
-import java.util.Set;
-
-import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.good.gd.Activity;
 import com.good.gd.GDAndroid;
 import com.good.gd.GDAppEvent;
 import com.good.gd.GDAppEventListener;
 import com.good.gd.GDAppEventType;
-import com.good.gd.error.GDError;
+import com.good.gd.error.GDNotAuthorizedError;
+import com.good.gd.icc.GDService;
+import com.good.gd.icc.GDServiceException;
+import com.good.gd.icc.GDServiceListener;
 
 
 public class GoodDynamicsLaunchActivity extends Activity {
 
-	private boolean authorizeCalled_ = false;
+	private enum ReasonOfCreation { ConnectionRequest, FrontRequest, Unknown }
+
+	private static boolean isGDServiceListenerWasSet_ = false;
+
+	private ReasonOfCreation reasonOfCreation_;
 
 	@Override
-	protected void onCreate(Bundle arg0) {
-		// TODO Auto-generated method stub
-		super.onCreate(arg0);
-		Intent intent = getIntent();
-		Bundle bundle = intent.getExtras();
-		if (bundle != null) {
-			Set<String> keys = bundle.keySet();
-			keys.size();
-		}
-		Set<String> categories = intent.getCategories();
-		if (categories != null) {
-			categories.size();
-		}
-		String action = intent.getAction();
-		if (action != null) {
-			action.length();
-		}
-		Uri data = intent.getData();
-		if (data != null) {
-			data.getScheme();
-		}
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-	}
-
-	@Override
-	public void onResume() {
-		super.onResume();
-
-		if (authorizeCalled_) {
-			finish();
-		} else {
+		if (!isGDServiceListenerWasSet_) {
 			try {
+				SecureGDFileEditorGDServiceListener gdServiceListener = SecureGDFileEditorGDServiceListener
+						.getInstance();
+				GDService.setServiceListener(gdServiceListener);
+				isGDServiceListenerWasSet_ = true;
+			} catch (GDServiceException e) {
+				e.printStackTrace();
+			}
+		}
+
+		Intent intent = getIntent();
+		String action = intent.getAction();
+		if (action.equals("android.intent.action.MAIN")) {
+			// Activity was launched by user manually
+			if (isGDAndroidAuthorized()) {
+				startActivity(new Intent(this, MainActivity.class));
+				finish();
+			} else {
 				GDAndroid.getInstance().authorize(new GDAppEventListener() {
+
 					@Override
 					public void onGDEvent(GDAppEvent event) {
 						if (event.getEventType() == GDAppEventType.GDAppEventAuthorized) {
 							startActivity(new Intent(GoodDynamicsLaunchActivity.this, MainActivity.class));
+							finish();
 						}
 					}
 				});
-				authorizeCalled_ = true;
-			} catch (GDError gderror) {
-				showErrorPopup(gderror.getMessage());
+			}
+		} else if (action.equals("com.good.gd.intent.action.ACTION_ICC_COMMAND")) {
+			// Activity was launched through GD ICC
+			Uri data = intent.getData();
+			if (data != null) {
+				String path = data.getPath();
+				if (path != null) {
+					if (path.equals("/CON_REQ")) {
+						reasonOfCreation_ = ReasonOfCreation.ConnectionRequest;
+					} else if (path.equals("/FRONT")) {
+						reasonOfCreation_ = ReasonOfCreation.FrontRequest;
+					} else {
+						reasonOfCreation_ = ReasonOfCreation.Unknown;
+					}
+				}
+
+				if (isGDAndroidAuthorized()) {
+					if (reasonOfCreation_ == ReasonOfCreation.FrontRequest) {
+						startActivity(new Intent(this, MainActivity.class));
+					}
+					finish();
+				} else {
+					GDAndroid.getInstance().authorize(new GDAppEventListener() {
+
+						@Override
+						public void onGDEvent(GDAppEvent event) {
+							if (event.getEventType() == GDAppEventType.GDAppEventAuthorized) {
+								if (reasonOfCreation_ == ReasonOfCreation.FrontRequest) {
+									startActivity(new Intent(GoodDynamicsLaunchActivity.this, MainActivity.class));
+								}
+								finish();
+							}
+						}
+					});
+				}
 			}
 
+		} else {
+			// Unknown situation
+			finish();
 		}
 	}
 
-	private void showErrorPopup(String error) {
-		AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
-		dialogBuilder.setTitle("Initialization Error");
-		dialogBuilder.setMessage(error);
-		dialogBuilder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialog, int whichButton) {
-				finish();
-			}
-		});
-		dialogBuilder.show();
+	private boolean isGDAndroidAuthorized() {
+		try {
+			GDAndroid.getInstance().getApplicationConfig();
+			return true;
+		} catch (GDNotAuthorizedError e) {
+			return false;
+		}
 	}
 }

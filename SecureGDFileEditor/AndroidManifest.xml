@@ -18,8 +18,7 @@
 		android:theme="@style/AppTheme" >
 		<activity
 			android:name="com.syncplicity.android.securegdfileeditor.GoodDynamicsLaunchActivity"
-			android:alwaysRetainTaskState="true"
-			android:theme="@android:style/Theme.NoDisplay" >
+			android:alwaysRetainTaskState="true" >
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />

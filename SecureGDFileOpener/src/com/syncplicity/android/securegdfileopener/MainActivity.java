@@ -125,7 +125,7 @@ public class MainActivity extends Activity {
 				String className = intent.getComponent().getClassName();
 
 				try {
-					String application = gdAppDetail.getApplicationId() + ".IccReceivingActivity";//className;
+					String application = className;
 					String service = SERVICE_ID; // id of service
 					String version = SERVICE_VERSION; // version of service
 					String method = "editFile"; // name method of service which we want to call

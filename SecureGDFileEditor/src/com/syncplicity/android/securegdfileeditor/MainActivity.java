@@ -8,19 +8,14 @@ import java.util.List;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.good.gd.Activity;
-import com.good.gd.GDAndroid;
-import com.good.gd.GDAppEvent;
-import com.good.gd.GDAppEventListener;
 import com.good.gd.file.File;
 import com.good.gd.file.FileInputStream;
-import com.good.gd.icc.GDService;
-import com.good.gd.icc.GDServiceException;
+import com.syncplicity.android.securegdfileeditor.SecureGDFileEditorGDServiceListener.GDServiceMessage;
 import com.syncplicity.android.securegdfileeditor.SecureGDFileEditorGDServiceListener.OnOpenFileToEditListener;
 
 public class MainActivity extends Activity implements OnOpenFileToEditListener {
@@ -39,13 +34,11 @@ public class MainActivity extends Activity implements OnOpenFileToEditListener {
 
 		fileContent_ = (EditText) findViewById(R.id.file_content);
 
-		try {
-			SecureGDFileEditorGDServiceListener gdServiceListener = SecureGDFileEditorGDServiceListener
-					.getInstance();
-			gdServiceListener.setOnOpenFileToEditListener_(MainActivity.this);
-			GDService.setServiceListener(gdServiceListener);
-		} catch (GDServiceException e) {
-			e.printStackTrace();
+		GDServiceMessage gdServiceMessage = SecureGDFileEditorGDServiceListener.getInstance().getPendingGDServiceMessages().poll();
+		if (gdServiceMessage != null) {
+			SecureGDFileEditorGDServiceListener.getInstance().consumeReceivedMessage(
+					gdServiceMessage.getApplication(), gdServiceMessage.getService(), gdServiceMessage.getVersion(), gdServiceMessage.getMethod(),
+					gdServiceMessage.getParams(), gdServiceMessage.getAttachments(), gdServiceMessage.getRequestID(),  this);
 		}
 	}
 
