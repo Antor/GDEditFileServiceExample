@@ -20,8 +20,6 @@ import android.widget.Toast;
 import com.good.gd.Activity;
 import com.good.gd.GDAndroid;
 import com.good.gd.GDAppDetail;
-import com.good.gd.GDAppEvent;
-import com.good.gd.GDAppEventListener;
 import com.good.gd.file.File;
 import com.good.gd.file.FileInputStream;
 import com.good.gd.file.FileOutputStream;
@@ -46,39 +44,12 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		Log.d("SecureGDFileOpener", "com.syncplicity.android.securegdfileopener.MainActivity.onCreate()");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.ac_main);
 
 		resetButton_ = (Button) findViewById(R.id.reset_button);
 		editButton_ = (Button) findViewById(R.id.edit_button);
 		fileContent_ = (TextView) findViewById(R.id.file_content);
-
-		// While app not authorized through GD library - block UI
-		resetButton_.setEnabled(false);
-		editButton_.setEnabled(false);
-
-		GDAndroid.getInstance().authorize(new GDAppEventListener() {
-			@Override
-			public void onGDEvent(GDAppEvent event) {
-				switch (event.getEventType()) {
-				case GDAppEventAuthorized:
-					loadTestFileContentFromDiskAsync(false);
-					break;
-				case GDAppEventNotAuthorized:
-					// If app not authorized through GD library - block UI
-					resetButton_.setEnabled(false);
-					editButton_.setEnabled(false);
-					break;
-				case GDAppEventPolicyUpdate:
-					break;
-				case GDAppEventRemoteSettingsUpdate:
-					break;
-				case GDAppEventServicesUpdate:
-					break;
-				}
-			}
-		});
 
 		try {
 			GDServiceClient.setServiceClientListener( new GDServiceClientListener() {
@@ -95,9 +66,34 @@ public class MainActivity extends Activity {
 							application));
 				}
 			} );
+
+			GDService.setServiceListener(new GDServiceListener() {
+
+				@Override
+				public void onReceiveMessage(String application, String service, String version, String method,
+						Object params, String[] attachments, String requestID) {
+					Log.d("SecureGDFileOpener", String.format("Received message %s",
+							params));
+					// File was successfully received so send empty response as sign of success
+					try {
+						GDService.replyTo(application, null, GDICCForegroundOptions.PreferMeInForeground, new String[0], requestID);
+					} catch (GDServiceException e) {
+						// Do nothing
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void onMessageSent(String application, String requestID, String[] attachments) {
+					Log.d("SecureGDFileOpener", String.format("Sent message to application=%s",
+							application));
+				}
+			});
 		} catch (GDServiceException e) {
 			e.printStackTrace();
 		}
+
+		loadTestFileContentFromDiskAsync(false);
 	}
 
 	@Override

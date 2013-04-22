@@ -3,23 +3,33 @@ package com.syncplicity.android.securegdfileeditor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.good.gd.Activity;
 import com.good.gd.file.File;
 import com.good.gd.file.FileInputStream;
+import com.good.gd.icc.GDICCForegroundOptions;
+import com.good.gd.icc.GDService;
+import com.good.gd.icc.GDServiceClient;
+import com.good.gd.icc.GDServiceClientListener;
+import com.good.gd.icc.GDServiceException;
 import com.syncplicity.android.securegdfileeditor.SecureGDFileEditorGDServiceListener.GDServiceMessage;
 import com.syncplicity.android.securegdfileeditor.SecureGDFileEditorGDServiceListener.OnOpenFileToEditListener;
 
 public class MainActivity extends Activity implements OnOpenFileToEditListener {
 
+	private Button saveButton_;
+	private Button cancelButton_;
 	private EditText fileContent_;
 
 	private File openedFile_;
@@ -32,23 +42,99 @@ public class MainActivity extends Activity implements OnOpenFileToEditListener {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.ac_main);
 
+		saveButton_ = (Button) findViewById(R.id.save_button);
+		cancelButton_ = (Button) findViewById(R.id.cancel_button);
 		fileContent_ = (EditText) findViewById(R.id.file_content);
 
-		GDServiceMessage gdServiceMessage = SecureGDFileEditorGDServiceListener.getInstance().getPendingGDServiceMessages().poll();
-		if (gdServiceMessage != null) {
-			SecureGDFileEditorGDServiceListener.getInstance().consumeReceivedMessage(
-					gdServiceMessage.getApplication(), gdServiceMessage.getService(), gdServiceMessage.getVersion(), gdServiceMessage.getMethod(),
-					gdServiceMessage.getParams(), gdServiceMessage.getAttachments(), gdServiceMessage.getRequestID(),  this);
+		saveButton_.setEnabled(false);
+		cancelButton_.setEnabled(false);
+		fileContent_.setEnabled(false);
+
+
+
+		try {
+			try {
+				SecureGDFileEditorGDServiceListener gdServiceListener = SecureGDFileEditorGDServiceListener
+						.getInstance();
+				GDServiceMessage gdServiceMessage = gdServiceListener.getPendingGDServiceMessages().poll();
+				if (gdServiceMessage != null) {
+					SecureGDFileEditorGDServiceListener.getInstance().consumeReceivedMessage(
+							gdServiceMessage.getApplication(), gdServiceMessage.getService(), gdServiceMessage.getVersion(), gdServiceMessage.getMethod(),
+							gdServiceMessage.getParams(), gdServiceMessage.getAttachments(), gdServiceMessage.getRequestID(),  this);
+				}
+				gdServiceListener.setOnOpenFileToEditListener_(this);
+				GDService.setServiceListener(gdServiceListener);
+			} catch (GDServiceException e) {
+				e.printStackTrace();
+			}
+
+			GDServiceClient.setServiceClientListener( new GDServiceClientListener() {
+
+				@Override
+				public void onReceiveMessage (String application, Object params, String[] attachments, String requestID) {
+					Log.d("SecureGDFileOpener", String.format("Received message %s",
+							params));
+				}
+
+				@Override
+				public void onMessageSent (String application, String requestID, String[] attachments) {
+					Log.d("SecureGDFileOpener", String.format("Sent message to application=%s",
+							application));
+				}
+			} );
+		} catch (GDServiceException e) {
+			e.printStackTrace();
 		}
 	}
 
+	public void onSaveAndSendFileBackClicked(View v) {
+		if (openedFile_ != null) {
+			final String SERVICE_ID = "com.good.gdservice.save-edited-file";
+			final String SERVICE_VERSION = "1.0.0.1";
 
-	public void onGenerateStubFileClicked(View v) {
-		// TODO Implementation
+			try {
+				String application = openedFileFromAplication_;
+				String service = SERVICE_ID;
+				String version = SERVICE_VERSION;
+				String method = "saveEdit";
+				Map<String, Object> params = new HashMap<String, Object>();
+				if (openedFileIdentificationData_ != null) {
+					params.put("identificationData", openedFileIdentificationData_);
+				}
+				String[] attachments = new String[] { openedFile_.getAbsolutePath() };
+				String requestID = GDServiceClient.sendTo(application, service, version, method, params,
+						attachments, GDICCForegroundOptions.PreferPeerInForeground);
+				finish();
+			} catch (GDServiceException e) {
+				Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(),
+						Toast.LENGTH_LONG).show();
+			}
+		}
 	}
 
-	public void onEditStubFileClicked(View v) {
-		// TODO Implementation
+	public void onCancelFileEditingClicked(View v) {
+		if (openedFile_ != null) {
+			final String SERVICE_ID = "com.good.gdservice.save-edited-file";
+			final String SERVICE_VERSION = "1.0.0.1";
+
+			try {
+				String application = openedFileFromAplication_;
+				String service = SERVICE_ID;
+				String version = SERVICE_VERSION;
+				String method = "releaseEdit";
+				Map<String, Object> params = new HashMap<String, Object>();
+				if (openedFileIdentificationData_ != null) {
+					params.put("identificationData", openedFileIdentificationData_);
+				}
+				String[] attachments = new String[] {  };
+				String requestID = GDServiceClient.sendTo(application, service, version, method, params,
+						attachments, GDICCForegroundOptions.PreferPeerInForeground);
+				finish();
+			} catch (GDServiceException e) {
+				Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(),
+						Toast.LENGTH_LONG).show();
+			}
+		}
 	}
 
 	@Override
@@ -61,7 +147,9 @@ public class MainActivity extends Activity implements OnOpenFileToEditListener {
 
 			@Override
 			protected void onPreExecute() {
-
+				saveButton_.setEnabled(false);
+				cancelButton_.setEnabled(false);
+				fileContent_.setEnabled(false);
 			}
 
 			@Override
@@ -120,6 +208,10 @@ public class MainActivity extends Activity implements OnOpenFileToEditListener {
 					openedFileIdentificationData_ = identificationData;
 					openedFileFromAplication_ = fromAplication;
 					fileContent_.setText(fileContentString_);
+
+					saveButton_.setEnabled(true);
+					cancelButton_.setEnabled(true);
+					fileContent_.setEnabled(true);
 				}
 			}
 		}.execute();

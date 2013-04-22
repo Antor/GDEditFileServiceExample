@@ -3,30 +3,27 @@
 	package="com.syncplicity.android.securegdfileopener"
 	android:versionCode="1"
 	android:versionName="1.0.0.0" >
-	<uses-sdk
-		android:minSdkVersion="9"
-		android:targetSdkVersion="17" />
+	<uses-sdk android:minSdkVersion="8" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
-	 
-	<application
-		android:allowBackup="true"
-		android:icon="@drawable/ic_launcher"
-		android:label="@string/app_name"
-		android:theme="@style/AppTheme" >
+	<application android:label="@string/app_name" android:theme="@style/AppTheme">
 		<activity
-			android:name=".MainActivity"
-			android:alwaysRetainTaskState="true" >
+			android:name=".LaunchActivity"
+			android:alwaysRetainTaskState="true"
+			android:enabled="true" >
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 		</activity>
-		<!-- Dedicated activity for receiving Inter-Container Communication intents -->
+		<activity
+			android:name=".MainActivity"
+			android:alwaysRetainTaskState="true" >
+		</activity>
+		<!-- Dedicated activity for receiving ICC intents -->
 		<activity
 			android:name=".IccReceivingActivity"
 			android:alwaysRetainTaskState="true"
@@ -35,7 +32,7 @@
 				<action android:name="com.good.gd.intent.action.ACTION_ICC_COMMAND" />
 			</intent-filter>
 		</activity>
-		<!-- Good Dynamics run-time internal activities and services -->
+		<!-- GD builtin Activity and Service -->
 		<activity android:name="com.good.gd.ui.GDInternalActivity" >
 		</activity>
 		<service
@@ -43,6 +40,7 @@
 			android:enabled="true"
 			android:exported="false" >
 		</service>
+		<!-- GT builtin Activity and Service -->
 		<activity
 			android:name="com.good.gt.ndkproxy.icc.IccActivity"
 			android:alwaysRetainTaskState="true"

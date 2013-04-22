@@ -9,32 +9,39 @@
 	android:paddingRight="@dimen/activity_horizontal_margin"
 	android:paddingTop="@dimen/activity_vertical_margin"
 	tools:context=".MainActivity" >
-	<TextView
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_gravity="center_horizontal"
-		android:text="Secure GD File Editor"
-		android:textAppearance="?android:attr/textAppearanceLarge"
-		android:textColor="#ffcc0000"
-		android:textStyle="bold" />
-	<Button
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:onClick="onGenerateStubFileClicked"
-		android:text="Save and send file back" />
-	<Button
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:onClick="onEditStubFileClicked"
-		android:text="Cancel file editing" />
 	<ScrollView
-	    android:layout_width="match_parent"
-	    android:layout_height="match_parent" >
-	    	    <EditText
-	        android:id="@+id/file_content"
-	        android:layout_width="match_parent"
-	        android:layout_height="wrap_content"
-	        android:ems="10"
-	        android:inputType="textMultiLine" />
+		android:layout_width="match_parent"
+		android:layout_height="match_parent" >
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical" >
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center_horizontal"
+				android:text="Secure GD File Editor"
+				android:textAppearance="?android:attr/textAppearanceLarge"
+				android:textColor="#ffcc0000"
+				android:textStyle="bold" />
+			<Button
+				android:id="@+id/save_button"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:onClick="onSaveAndSendFileBackClicked"
+				android:text="Save and send file back" />
+			<Button
+				android:id="@+id/cancel_button"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:onClick="onCancelFileEditingClicked"
+				android:text="Cancel file editing" />
+			<EditText
+				android:id="@+id/file_content"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:ems="10"
+				android:inputType="textMultiLine" />
+		</LinearLayout>
 	</ScrollView>
 </LinearLayout>

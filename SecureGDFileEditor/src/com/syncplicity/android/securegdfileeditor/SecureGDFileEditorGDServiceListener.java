@@ -99,6 +99,12 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 
 	private Queue<GDServiceMessage> pendingGDServiceMessages_;
 
+	private OnOpenFileToEditListener onOpenFileToEditListener_;
+
+	public void setOnOpenFileToEditListener_(OnOpenFileToEditListener onOpenFileToEditListener_) {
+		this.onOpenFileToEditListener_ = onOpenFileToEditListener_;
+	}
+
 	public static SecureGDFileEditorGDServiceListener getInstance() {
 		if (instance_ == null) {
 			instance_ = new SecureGDFileEditorGDServiceListener();
@@ -119,7 +125,12 @@ public class SecureGDFileEditorGDServiceListener implements GDServiceListener {
 			Object params, String[] attachments, String requestID) {
 		Log.d("SecureGDFileOpener", String.format("Received message %s",
 				params));
-		pendingGDServiceMessages_.add(new GDServiceMessage(application, service, version, method, params, attachments, requestID));
+		if (onOpenFileToEditListener_ != null) {
+			consumeReceivedMessage(application, service, version, method, params, attachments, requestID, onOpenFileToEditListener_);
+		} else {
+			pendingGDServiceMessages_.add(new GDServiceMessage(application, service, version, method, params, attachments, requestID));
+		}
+
 	}
 
 	public void consumeReceivedMessage(String application, String service, String version, String method,
