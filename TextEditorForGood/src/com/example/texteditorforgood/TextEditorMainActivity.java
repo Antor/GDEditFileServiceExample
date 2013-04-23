@@ -14,36 +14,40 @@ import com.good.gd.GDAppEvent;
 import com.good.gd.GDAppEventListener;
 import com.good.gd.GDAppEventType;
 import com.good.gd.file.File;
-import com.good.gd.icc.GDICCForegroundOptions;
 import com.good.gd.icc.GDService;
 import com.good.gd.icc.GDServiceException;
-import com.good.gd.icc.GDServiceListener;
 
 public class TextEditorMainActivity extends Activity {
 
 	public static String TAG = "TextEditorForGood";
 
 	private static boolean isEditFileServiceWasSetUp_ = false;
+	private static boolean isAppAuthorized_ = false;
 
 	private Button saveButton_;
 	private Button cancelButton_;
 	private EditText fileContent_;
+	
+	private boolean resumed_ = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
-		if (!isEditFileServiceWasSetUp_) {
-			setupEditFileService();
-			isEditFileServiceWasSetUp_ = true;
-		}
-
-
 		setContentView(R.layout.ac_text_editor_main);
 
 		saveButton_ = (Button) findViewById(R.id.save_button);
 		cancelButton_ = (Button) findViewById(R.id.cancel_button);
 		fileContent_ = (EditText) findViewById(R.id.file_content);
+
+		if (!isEditFileServiceWasSetUp_) {
+			TextEditorGDServiceListener gdServiceListener = TextEditorGDServiceListener.getInstance(this);
+			try {
+				GDService.setServiceListener(gdServiceListener);
+			} catch (GDServiceException e) {
+				Log.e(TextEditorMainActivity.TAG, "Error while initializing GDService: " + e.getMessage(), e);
+			}
+			isEditFileServiceWasSetUp_ = true;
+		}
 
 		// Block interface until file will be opened from another app
 		saveButton_.setEnabled(false);
@@ -54,7 +58,8 @@ public class TextEditorMainActivity extends Activity {
 			@Override
 			public void onGDEvent(GDAppEvent event) {
 				if (event.getEventType() == GDAppEventType.GDAppEventAuthorized) {
-					//
+					isAppAuthorized_ = true;
+					loadLastOpenedFile();
 				}
 			}
 		});
@@ -63,7 +68,13 @@ public class TextEditorMainActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-
+		if (isAppAuthorized_) {
+			loadLastOpenedFile();
+		}
+		resumed_ = true;
+	}
+	
+	private void loadLastOpenedFile() {
 		File lastOpenedFile = SharedPreferencesManager.getLastOpenedFile(this);
 		if (lastOpenedFile != null) {
 			try {
@@ -71,8 +82,7 @@ public class TextEditorMainActivity extends Activity {
 				fileContent_.setText(fileContentString);
 				fileContent_.setEnabled(true);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Log.e(TextEditorMainActivity.TAG, "Error while opening file: " + e.getMessage(), e);
 			}
 		}
 	}
@@ -80,7 +90,13 @@ public class TextEditorMainActivity extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-
+		if (isAppAuthorized_) {
+			saveLastOpenedFileToDisk();
+		}
+		resumed_ = false;
+	}
+	
+	private void saveLastOpenedFileToDisk() {
 		File lastOpenedFile = SharedPreferencesManager.getLastOpenedFile(this);
 		if (lastOpenedFile != null) {
 			try {
@@ -88,38 +104,8 @@ public class TextEditorMainActivity extends Activity {
 				lastOpenedFile.delete();
 				GDFileUtils.createTextFile(lastOpenedFile, fileContentString);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Log.e(TextEditorMainActivity.TAG, "Error while saving file: " + e.getMessage(), e);
 			}
-		}
-	}
-
-	private void setupEditFileService() {
-		try {
-			GDService.setServiceListener(new GDServiceListener() {
-				@Override
-				public void onReceiveMessage(String application, String service, String version, String method,
-						Object params, String[] attachments, String requestID) {
-					Log.d(TextEditorMainActivity.TAG, "GDService.onReceiveMessage(application=" + application +
-							", service=" + service +", version=" + version + ", method=" + method + ", params=" + params +
-							", attachments=" + attachments + ", requestID=" + requestID + ")");
-					SharedPreferencesManager.setLastOpenedFile(getApplicationContext(), new File(attachments[0]), null);
-					try {
-						Object emptyResponse = null;
-						GDService.replyTo(application, emptyResponse, GDICCForegroundOptions.PreferPeerInForeground,
-								new String[0], requestID);
-					} catch (GDServiceException e) {
-						Log.e(TextEditorMainActivity.TAG, "Error while sending response: " + e.getMessage(), e);
-					}
-				}
-
-				@Override
-				public void onMessageSent(String application, String requestID, String[] attachments) {
-					Log.d(TextEditorMainActivity.TAG, "GDService.onMessageSent(application=" + application + ", requestID=" + requestID + ", attachments=" + attachments + ")");
-				}
-			});
-		} catch (GDServiceException e) {
-			Log.e(TextEditorMainActivity.TAG, "Error while initializing GDService: " + e.getMessage(), e);
 		}
 	}
 
