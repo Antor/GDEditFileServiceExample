@@ -1,0 +1,41 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical" >
+	<ScrollView
+		android:layout_width="match_parent"
+		android:layout_height="match_parent" >
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical" >
+			<TextView
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center_horizontal"
+				android:text="Text Editor for Good"
+				android:textAppearance="?android:attr/textAppearanceLarge"
+				android:textColor="#ffcc0000"
+				android:textStyle="bold" />
+			<Button
+				android:id="@+id/save_button"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:onClick="onSaveAndSendFileBackClicked"
+				android:text="Save and send file back" />
+			<Button
+				android:id="@+id/cancel_button"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:onClick="onCancelFileEditingClicked"
+				android:text="Cancel file editing" />
+			<EditText
+				android:id="@+id/file_content"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:ems="10"
+				android:inputType="textMultiLine" />
+		</LinearLayout>
+	</ScrollView>
+</LinearLayout>

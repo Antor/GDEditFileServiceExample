@@ -1,0 +1,48 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	package="com.example.texteditorforgood"
+	android:versionCode="1"
+	android:versionName="1.0.0.0" >
+	<uses-sdk
+		android:minSdkVersion="9"
+		android:targetSdkVersion="17" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+	<application
+		android:allowBackup="true"
+		android:label="@string/app_name" android:name=".TextEditorApplication">
+		<activity
+			android:name=".TextEditorMainActivity"
+			android:alwaysRetainTaskState="true" >
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".IccReceivingActivity"
+			android:alwaysRetainTaskState="true"
+			android:exported="true" >
+			<intent-filter>
+				<action android:name="com.good.gd.intent.action.ACTION_ICC_COMMAND" />
+			</intent-filter>
+		</activity>
+		<activity android:name="com.good.gd.ui.GDInternalActivity" />
+		<service
+			android:name="com.good.gd.service.GDService"
+			android:enabled="true"
+			android:exported="false" />
+		<activity
+			android:name="com.good.gt.ndkproxy.icc.IccActivity"
+			android:alwaysRetainTaskState="true"
+			android:theme="@android:style/Theme.NoDisplay" >
+			<intent-filter>
+				<action android:name="com.good.gd.intent.action.ACTION_ICC_COMMAND" />
+			</intent-filter>
+		</activity>
+		<service android:name="com.good.gt.ndkproxy.icc.IccManagerService" />
+	</application>
+</manifest>
