@@ -12,6 +12,7 @@ public class SharedPreferencesManager {
 
 	private static final String LAST_OPENED_FILE_KEY = "last_opened_file";
 	private static final String IDENTIFICATION_DATA_KEY = "identification_data";
+	private static final String APPLICATION_KEY = "application";
 
 	public static File getLastOpenedFile(Context context) {
 		String path = context.getSharedPreferences(PREFRENCES_NAME, Context.MODE_PRIVATE).getString(LAST_OPENED_FILE_KEY, null);
@@ -23,15 +24,23 @@ public class SharedPreferencesManager {
 		byte[] identificationData = encodedIdentificationData == null ? null : Base64.decode(encodedIdentificationData, Base64.DEFAULT);
 		return identificationData;
 	}
+	
+	public static String getLastOpenedFileFromApplication(Context context) {
+		String application = context.getSharedPreferences(PREFRENCES_NAME, Context.MODE_PRIVATE).getString(APPLICATION_KEY, null);
+		return application;
+	}
 
-	public static void setLastOpenedFile(Context context, File lastOpenedFile, byte[] identificationData) {
+	public static void setLastOpenedFile(Context context, File lastOpenedFile, byte[] identificationData, String application) {
 		SharedPreferences sharedPreferences = context.getSharedPreferences(PREFRENCES_NAME, Context.MODE_PRIVATE);
 
 		String encodedIdentificationData = identificationData == null ? null : Base64.encodeToString(identificationData, Base64.DEFAULT);
 
 		sharedPreferences.edit().putString(LAST_OPENED_FILE_KEY, lastOpenedFile.getAbsolutePath())
-				.putString(IDENTIFICATION_DATA_KEY, encodedIdentificationData).commit();
+				.putString(IDENTIFICATION_DATA_KEY, encodedIdentificationData)
+				.putString(APPLICATION_KEY, application).commit();
 	}
 
-
+	public static void clear(Context context) {
+		context.getSharedPreferences(PREFRENCES_NAME, Context.MODE_PRIVATE).edit().clear().commit();
+	}
 }

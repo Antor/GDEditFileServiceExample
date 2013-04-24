@@ -17,7 +17,7 @@ import com.good.gd.icc.GDServiceListener;
 public class TextEditorGDServiceListener implements GDServiceListener {
 
 	public interface OnOpenFileToEditListener {
-		public void onOpenFileToEdit(File file, byte[] identificationData, String fromAplication);
+		public void onFileToEditReceived();
 	}
 
 	private static final String EDIT_FILE_SERVICE_ID = "com.good.gdservice.edit-file";
@@ -46,6 +46,7 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 	private static TextEditorGDServiceListener instance_;
 	
 	private Context context_;
+	private OnOpenFileToEditListener onOpenFileToEditListener_;
 
 	public static TextEditorGDServiceListener getInstance(Context context) {
 		if (instance_ == null) {
@@ -58,6 +59,10 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		this.context_ = context.getApplicationContext();
 	}
 	
+	public void setOnOpenFileToEditListener(OnOpenFileToEditListener onOpenFileToEditListener) {
+		this.onOpenFileToEditListener_ = onOpenFileToEditListener;
+	}
+
 	@Override
 	public void onReceiveMessage(String application, String service, String version, String method,
 			Object params, String[] attachments, String requestID) {
@@ -156,7 +161,7 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		}
 
 		byte[] identificationData = (byte[]) paramsMap.get("identificationData");
-		SharedPreferencesManager.setLastOpenedFile(context_, file, identificationData);
+		SharedPreferencesManager.setLastOpenedFile(context_, file, identificationData, application);
 
 		// File was successfully received so send empty response as sign of success
 		try {
@@ -164,11 +169,10 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		} catch (GDServiceException e) {
 			Log.e(TextEditorMainActivity.TAG, e.getMessage(), e);
 		}
-	}
-
-	private void openFileToEdit(File file, byte[] identificationData, String fromAplication) {
-		// TODO Implementation
 		
+		if (onOpenFileToEditListener_ != null) {
+			onOpenFileToEditListener_.onFileToEditReceived();
+		}
 	}
 	
 	private void sendErrorResponse(int errorCode, String message, String application, String requestID) {

@@ -24,6 +24,7 @@ import com.good.gd.GDAppEventListener;
 import com.good.gd.GDAppEventType;
 import com.good.gd.file.File;
 import com.good.gd.icc.GDICCForegroundOptions;
+import com.good.gd.icc.GDService;
 import com.good.gd.icc.GDServiceClient;
 import com.good.gd.icc.GDServiceClientListener;
 import com.good.gd.icc.GDServiceException;
@@ -32,12 +33,15 @@ public class FilesHolderMainActivity extends Activity {
 
 	public static String TAG = "FilesHolder";
 
-	private static final String PATH_TO_TEST_TXT_FILE = "test.txt";
+	public static final String PATH_TO_TEST_TXT_FILE = "test.txt";
 	private static final String DEFAULT_TEST_TXT_FILE_CONTENT = "Hello GD world!";
 
 	private static final String EDIT_FILE_SERVICE_ID = "com.good.gdservice.edit-file";
 	private static final String EDIT_FILE_SERVICE_VERSION = "1.0.0.0";
 	private static final String EDIT_FILE_METHOD = "editFile";
+	
+	private static boolean isSaveEditedFileServiceWasSetUp_ = false;
+	private static boolean isAppAuthorized_ = false;
 
 	private Button resetButton_;
 	private Button editButton_;
@@ -51,6 +55,17 @@ public class FilesHolderMainActivity extends Activity {
 		resetButton_ = (Button) findViewById(R.id.reset_button);
 		editButton_ = (Button) findViewById(R.id.edit_button);
 		fileContent_ = (TextView) findViewById(R.id.file_content);
+		
+		FilesHolderGDServiceListener gdServiceListener = FilesHolderGDServiceListener.getInstance();	
+		if (!isSaveEditedFileServiceWasSetUp_) {
+			try {
+				GDService.setServiceListener(gdServiceListener);
+			} catch (GDServiceException e) {
+				Log.e(TAG, "Error while initializing GDService: " + e.getMessage(), e);
+			}
+			isSaveEditedFileServiceWasSetUp_ = true;
+		}
+		
 
 		// While authentication not passed disable UI
 		resetButton_.setEnabled(false);
@@ -60,25 +75,19 @@ public class FilesHolderMainActivity extends Activity {
 			@Override
 			public void onGDEvent(GDAppEvent event) {
 				if (event.getEventType() == GDAppEventType.GDAppEventAuthorized) {
-					File file = new File(PATH_TO_TEST_TXT_FILE);
-					if (!file.exists()) {
-						try {
-							GDFileUtils.createTextFile(file, DEFAULT_TEST_TXT_FILE_CONTENT);
-						} catch (IOException e) {
-							file.delete();
-						}
-					}
-					try {
-						String fileContentString = GDFileUtils.readTextFile(file);
-						fileContent_.setText(fileContentString);
-					} catch (IOException e) {
-						// Do nothing
-					}
-					editButton_.setEnabled(file.exists());
-					resetButton_.setEnabled(true);
+					isAppAuthorized_ = true;
+					loadTestFileContent();
 				}
 			}
 		});
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		if (isAppAuthorized_) {
+			loadTestFileContent();
+		}
 	}
 
 	public void onResetTestFileClicked(View v) {
@@ -159,5 +168,24 @@ public class FilesHolderMainActivity extends Activity {
 			Log.e(TAG, "Error while sending request: " + e.getMessage(), e);
 			Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
 		}
+	}
+
+	private void loadTestFileContent() {
+		File file = new File(PATH_TO_TEST_TXT_FILE);
+		if (!file.exists()) {
+			try {
+				GDFileUtils.createTextFile(file, DEFAULT_TEST_TXT_FILE_CONTENT);
+			} catch (IOException e) {
+				file.delete();
+			}
+		}
+		try {
+			String fileContentString = GDFileUtils.readTextFile(file);
+			fileContent_.setText(fileContentString);
+		} catch (IOException e) {
+			// Do nothing
+		}
+		editButton_.setEnabled(file.exists());
+		resetButton_.setEnabled(true);
 	}
 }
