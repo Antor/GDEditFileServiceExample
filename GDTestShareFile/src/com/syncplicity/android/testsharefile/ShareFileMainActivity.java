@@ -1,5 +1,7 @@
 package com.syncplicity.android.testsharefile;
 
+import java.io.IOException;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -22,11 +24,14 @@ import com.good.gd.icc.GDServiceListener;
 
 public class ShareFileMainActivity extends Activity {
 
-	public static String TAG = "ShareFileMainActivity";
+	public static final String TAG = "ShareFileMainActivity";
 
 	private static final String TRANSFER_FILE_SERVICE_ID = "com.good.gdservice.transfer-file";
 	private static final String TRANSFER_FILE_SERVICE_VERSION_1_0_0_0 = "1.0.0.0";
 	private static final String TRANSFER_FILE_METHOD = "transferFile";
+
+	private static final String NAME_OF_FILE_TO_SHARE = "share_this.txt";
+	private static final String CONTENT_OF_FILE_TO_SHARE = "Hello Transfer File service and AppKinetics!";
 
 	private static boolean isEditFileServiceWasSetUp_ = false;
 	private static boolean isAppAuthorized_ = false;
@@ -57,7 +62,7 @@ public class ShareFileMainActivity extends Activity {
 									runOnUiThread(new Runnable() {
 										@Override
 										public void run() {
-											lastSharedFileName_.setText(new File(attachments[0]).getName());
+											lastSharedFileName_.setText("Last shared file name:" + new File(attachments[0]).getName());
 										}
 									});
 								}
@@ -86,7 +91,7 @@ public class ShareFileMainActivity extends Activity {
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
-								lastSharedFileName_.setText(new File(path).getName());
+								lastSharedFileName_.setText("Last shared file name:" + new File(path).getName());
 							}
 						});
 					}
@@ -102,7 +107,7 @@ public class ShareFileMainActivity extends Activity {
 		if (isAppAuthorized_) {
 			String path = SharedPreferencesManager.getPathToLastSharedFile(getApplicationContext());
 			if (path != null) {
-				lastSharedFileName_.setText(new File(path).getName());
+				lastSharedFileName_.setText("Last shared file name:" + new File(path).getName());
 			}
 		}
 	}
@@ -114,34 +119,20 @@ public class ShareFileMainActivity extends Activity {
 	}
 
 	public void onShareFileClicked(View v) {
-
-		// TODO
-		// 1. Create stub file to send if not exists
-		// 2. Determine to which app to share file and show user list to shoose from if needed
-
-		String path = "";
-		GDAppDetail gdAppDetail = new GDAppDetail("com.syncplicity.android", "com.syncplicity.android.gdsupport.IccReceivingActivity", "2.3.0.0");
-
-		try {
-			GDServiceClient.setServiceClientListener(new GDServiceClientListener() {
-				@Override
-				public void onReceiveMessage(String application, Object params, String[] attachments, String requestID) {
-					// Do nothing
-				}
-
-				@Override
-				public void onMessageSent(String application, String requestID, String[] attachments) {
-					// Do nothing
-				}
-			});
-
-			//"com.syncplicity.android.IccReceivingActivity" if "gdAppDetail.getAddress()" doesn't work
-			GDServiceClient.sendTo(gdAppDetail.getAddress(), TRANSFER_FILE_SERVICE_ID, TRANSFER_FILE_SERVICE_VERSION_1_0_0_0,
-					TRANSFER_FILE_METHOD, null, new String[] { path },
-					GDICCForegroundOptions.PreferPeerInForeground);
-		} catch (GDServiceException e) {
-			Log.e(TAG, "Error while sending request: " + e.getMessage(), e);
-			Toast.makeText(getApplicationContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+		if (!isAppAuthorized_) {
+			return;
 		}
+
+		// Create stub file to send if not exists
+		File fileToShare = new File(NAME_OF_FILE_TO_SHARE);
+		if (!fileToShare.exists()) {
+			try {
+				GDFileUtils.createTextFile(fileToShare, CONTENT_OF_FILE_TO_SHARE);
+			} catch (IOException e) {
+				// There is nothing to share since file creation failed
+				return;
+			}
+		}
+		AppKineticsHelper.shareFile(this, fileToShare);
 	}
 }

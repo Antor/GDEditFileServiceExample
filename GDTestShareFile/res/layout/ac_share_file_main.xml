@@ -9,7 +9,7 @@
 		android:layout_alignParentTop="true"
 		android:layout_centerHorizontal="true"
 		android:layout_marginTop="33dp"
-		android:text="..."
+		android:text="Last shared file name:"
 		android:textAppearance="?android:attr/textAppearanceMedium" />
 	<Button
 		android:id="@+id/shareButton"
@@ -20,5 +20,5 @@
 		android:layout_below="@+id/last_shared_file_name"
 		android:layout_marginTop="45dp"
 		android:onClick="onShareFileClicked"
-		android:text="Share this file" />
+		android:text="Share test file" />
 </RelativeLayout>
