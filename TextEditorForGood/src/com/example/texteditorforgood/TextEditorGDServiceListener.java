@@ -44,7 +44,7 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 	private static final int EDIT_FILE_SERVICE_FILE_NOT_PROCESSED_ERROR_CODE = 3;
 
 	private static TextEditorGDServiceListener instance_;
-	
+
 	private Context context_;
 	private OnOpenFileToEditListener onOpenFileToEditListener_;
 
@@ -58,7 +58,7 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 	private TextEditorGDServiceListener(Context context) {
 		this.context_ = context.getApplicationContext();
 	}
-	
+
 	public void setOnOpenFileToEditListener(OnOpenFileToEditListener onOpenFileToEditListener) {
 		this.onOpenFileToEditListener_ = onOpenFileToEditListener;
 	}
@@ -70,18 +70,18 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 				&& version.equals(EDIT_FILE_SERVICE_VERSION_1_0_0_0)) {
 			handleEditFileServiceRequest(application, method, params, attachments, requestID);
 		} else {
-			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
-					String.format("Service %s v.%s is unsupported by application %s!", service, version, application), 
+			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
+					String.format("Service %s v.%s is unsupported by application %s!", service, version, application),
 					application, requestID);
 		}
 	}
-	
+
 	private void handleEditFileServiceRequest(String application, String method, Object params, String[] attachments,
 			String requestID) {
 		if (method.equals(EDIT_FILE_SERVICE_EDIT_FILE_METHOD)) {
 			handleEditFileServiceRequestWithEditFileMethod(application, params, attachments, requestID);
 		} else {
-			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 					String.format("Service %s v.%s does not support %s method!", EDIT_FILE_SERVICE_ID,
 							EDIT_FILE_SERVICE_VERSION_1_0_0_0, method),
 					application, requestID);
@@ -92,19 +92,19 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 			String requestID) {
 		// Request should contains exactly 1 attachment
 		if (attachments.length != 1) {
-			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 					String.format("Method %s of service %s v.%s should contains exactly 1 attachement!", EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID,
-							EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+							EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 					application, requestID);
 			return;
 		}
 
 		// Parameters of method should be specified and be instance of java.util.Map
 		if (params == null || !(params instanceof Map)) {
-			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 					String.format(
 							"Parameters of method %s of service %s v.%s should be specified and be instance of java.util.Map!",
-							EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+							EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 					application, requestID);
 			return;
 		}
@@ -114,9 +114,9 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 
 		// Only one optional parameter is possible for method
 		if (keys.size() > 1) {
-			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+			sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 					String.format("Only one optional parameter is possible for method %s of service %s v.%s!",
-							EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+							EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 					application, requestID);
 			return;
 		}
@@ -124,17 +124,17 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		if (keys.size() == 1) {
 			for (Object key : keys) {
 				if (!(key instanceof String)) {
-					sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+					sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 							String.format("Key for single optional parameter should be instance of String for method %s of service %s v.%s should be specified and be instance of java.util.Map!",
-									EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+									EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 							application, requestID);
 					return;
 				}
 				String keyAsString = (String) key;
 				if (!keyAsString.equals("identificationData")) {
-					sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+					sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 							String.format("Key for single optional parameter should be equal to 'identificationData' for method %s of service %s v.%s!",
-									EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+									EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 							application, requestID);
 					return;
 				}
@@ -142,9 +142,9 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 			// 'identificationData' parameter value should be instance of byte[]
 			Object identificationData = paramsMap.get("identificationData");
 			if (!(identificationData instanceof byte[])) {
-				sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE, 
+				sendErrorResponse(EDIT_FILE_SERVICE_INVALID_REQUEST_ERROR_CODE,
 						String.format("'identificationData' parameter value should be instance of byte[] for method %s of service %s v.%s!",
-								EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+								EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID, EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 						application, requestID);
 				return;
 			}
@@ -153,9 +153,9 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		// Only files with extension txt are supported
 		File file = new File(attachments[0]);
 		if (!file.getName().endsWith(".txt")) {
-			sendErrorResponse(EDIT_FILE_SERVICE_UNSUPPORTED_FILE_TYPE_ERROR_CODE, 
+			sendErrorResponse(EDIT_FILE_SERVICE_UNSUPPORTED_FILE_TYPE_ERROR_CODE,
 					String.format("Method %s of service %s v.%s support only editing files with extension txt!", EDIT_FILE_SERVICE_EDIT_FILE_METHOD, EDIT_FILE_SERVICE_ID,
-							EDIT_FILE_SERVICE_VERSION_1_0_0_0), 
+							EDIT_FILE_SERVICE_VERSION_1_0_0_0),
 					application, requestID);
 			return;
 		}
@@ -169,12 +169,12 @@ public class TextEditorGDServiceListener implements GDServiceListener {
 		} catch (GDServiceException e) {
 			Log.e(TextEditorMainActivity.TAG, e.getMessage(), e);
 		}
-		
+
 		if (onOpenFileToEditListener_ != null) {
 			onOpenFileToEditListener_.onFileToEditReceived();
 		}
 	}
-	
+
 	private void sendErrorResponse(int errorCode, String message, String application, String requestID) {
 		GDServiceError gdServiceError = new GDServiceError(errorCode, message, null);
 		try {
